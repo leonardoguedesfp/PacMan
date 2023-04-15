@@ -1,0 +1,629 @@
+.data
+POS_PERS:		.half 16, 208
+POS_ANTIGA_PERS:	.half 16, 208
+POS_AZUL:		.half 96, 32
+POS_ANTIGA_AZUL:	.half 96, 32
+POS_VERMELHO:		.half 128, 32
+POS_ANTIGA_VERMELHO:	.half 128, 32
+POS_ROSA:		.half 160, 32
+POS_ANTIGA_ROSA:	.half 160, 32
+POS_AMARELO:		.half 192, 32
+POS_ANTIGA_AMARELO:	.half 192, 32
+
+##As diferenças dessa versão para a de 13/02 (pronta para o RARS) é apenas as notas musicais ativadas, a velocidade e o
+##numero de racoes por mapa.
+
+###########################################################################################################
+#					MACROS
+###########################################################################################################		
+########################## Imprime String Literal no terminal #############################################
+.macro print(%str)
+.data
+texto: .string %str
+
+.text
+	li a7, 4
+	la a0, texto
+	ecall
+.end_macro
+
+
+
+###########################################################################################################
+
+
+###########################################################################################################
+#						MAIN
+###########################################################################################################
+
+.text
+
+TELAINI:	
+		la a0, Inicio			#Indica o mapa que sera jogado e o carrega em a0
+		li a1,0				# Passa x = 0, já que se pretende imprimir toda a tela inicial
+		li a2,0				# Também passa o y = 0
+		li a3,0				##Imprime o sprite, muda o frame e imprime novamente
+		call PRINT
+		li a3,1				##Imprime o sprite, muda o frame e imprime novamente
+		call PRINT
+		#call MUSICA
+
+LOOPINI:	li t1,0xFF200000		# carrega o endereco de controle do KDMMIO
+		lw t0,0(t1)			# Le bit de Controle Teclado
+		andi t0,t0,0x0001		# mascara o bit menos significativo
+   		beq t0,zero,LOOPINI  	   	# Se nao ha tecla pressionada entao vai para LOOPINI
+		
+
+
+
+SETUP:		la s1, map			#Endereço do map1
+		la s2, map2			#Endereço do map2
+		la s3, map3			#Endereço do map3
+		mv s4, s1			#Indica o mapa que sera jogado e o carrega em a0
+		li s8, 135			#Representa as bolinhas que existem no mapa 1
+		li s9, 0xFFFFFFFF		#Auxilia o contador aleatorio provisorio
+		li s10, 0			#Ajuda a controlar a velocida dos fantasmas
+		li s11, 6000			#Representa a velocidade dos fantasmas
+						#s0 ajuda no controle do frame
+		
+		
+						##IMPRIME O MAPA INICIAL NOS DOIS FRAMES
+		mv a0, s4			#Indica o mapa que sera jogado e o carrega em a0
+		li a1,0				# Passa x = 0, já que se pretende imprimir todo o mapa inicial
+		li a2,0				# Também passa o y = 0
+		li a3,0				##Imprime o sprite, muda o frame e imprime novamente
+		call PRINT			
+		li a3,1				
+		call PRINT			
+		
+		
+		la a0, Vida			#Imprime as 3 vidas nos dois frames
+		li a1,32				
+		li a2, 64				
+		li a3,0				
+		call PRINT			
+		li a3,1				
+		call PRINT			
+				
+		li a2, 80				
+		li a3,0				
+		call PRINT			
+		li a3,1				
+		call PRINT	
+		
+		li a2, 96				
+		li a3,0				
+		call PRINT			
+		li a3,1				
+		call PRINT		
+
+
+
+
+
+		
+GAME_LOOP:	jal NUMALE
+	
+		la t0,POS_PERS			# carrega em t0 o endereco de CHAR_POS, onde está armazenado o "x" e o "y"
+		la a0,char			# carrega o endereco do sprite 'char' em a0
+		lh a1,0(t0)			# carrega a posicao x do personagem em a1
+		lh a2,2(t0)			# carrega a posicao y do personagem em a2
+		call PRINT			# imprime o personagem
+		
+		la t0,POS_AZUL			# Replica o procedimento 4 vezes para imprimir os fantasmas		
+		la a0,fantAzul			
+		lh a1,0(t0)			
+		lh a2,2(t0)			
+		call PRINT
+		
+		la t0,POS_VERMELHO	
+		la a0,fantVermelho			
+		lh a1,0(t0)			
+		lh a2,2(t0)			
+		call PRINT
+		
+		la t0,POS_ROSA		
+		la a0,fantRosa			
+		lh a1,0(t0)			
+		lh a2,2(t0)		
+		call PRINT
+		
+		la t0,POS_AMARELO	
+		la a0,fantAmarelo			
+		lh a1,0(t0)			
+		lh a2,2(t0)			
+		call PRINT
+				
+			
+		xori s0,s0,1			# inverte o valor do frame atual (somente o registrador)
+		mv a3,s0			# carrega o valor do frame em a3
+		li t0,0xFF200604		# carrega em t0 o endereco de troca de frame
+		sw s0,0(t0)			# mostra o sprite pronto para o usuario
+		
+		call INPUT			# chama o procedimento de entrada do teclado
+				
+		call LIMPARASTRO		#Chama a funcao que limpa o rastro do personagem
+		call PRINT
+		
+	
+		addi s10, s10, 1
+		bgt s10,s11, MOVIMENTAFAM	#Chama a funcao de movimento do fantasma depois de tantas vezes que o loop rodar	
+
+		la a5, POS_ANTIGA_AZUL		# carrega em a5 o end da posicao antiga do fantasma azul
+		call LIMPARASTROFAN		#Chama a funcao que limpa o rastro do fantasma
+		call PRINT
+		
+		la a5, POS_ANTIGA_VERMELHO	# carrega em a5 o end da posicao antiga do fantasma azul
+		call LIMPARASTROFAN		#Chama a funcao que limpa o rastro do fantasma
+		call PRINT
+		
+		la a5, POS_ANTIGA_ROSA		# carrega em a5 o end da posicao antiga do fantasma azul
+		call LIMPARASTROFAN		#Chama a funcao que limpa o rastro do fantasma
+		call PRINT
+		
+		la a5, POS_ANTIGA_AMARELO	# carrega em a5 o end da posicao antiga do fantasma azul
+		call LIMPARASTROFAN		#Chama a funcao que limpa o rastro do fantasma
+		call PRINT
+		
+			
+		j GAME_LOOP			# continua o loop
+
+MOVIMENTAFAM: 	la a4,POS_AZUL			# carrega em t0 o end da posicao do fantasma azul para passar como parametro
+		la a5, POS_ANTIGA_AZUL		# carrega em t1 o end da posicao antiga do fantasma azul
+		call MOVEFAN			#chama a funcao que faz o personagem se mover
+
+		call NUMALE			#Chama a funcao NUMALE para alterar o numero aleatorio
+
+		la a4,POS_VERMELHO			
+		la a5, POS_ANTIGA_VERMELHO		
+		call MOVEFAN			
+
+		call NUMALE
+
+		la a4,POS_ROSA			
+		la a5, POS_ANTIGA_ROSA		
+		call MOVEFAN
+
+		call NUMALE
+
+		la a4,POS_AMARELO		
+		la a5, POS_ANTIGA_AMARELO		
+		call MOVEFAN	
+		
+		j GAME_LOOP			# continua o loop			
+		
+
+
+
+###########################################################################################################
+#					FUNCOES AUXILIARES
+###########################################################################################################
+
+		###################################################################################
+#						FUNCAO PRINT
+#PARAMETROS:Recebe como parametro o endereco de alguma imagem, e a posicao "x" e "y".
+#a0 = Endereco da imagem
+#a1 = x da imagem
+#a2 = y da imagem
+#FUNCIONAMENTO: Imprime a imagem passada como parametro na posicao indicada
+
+#Obs: Quando o SETUP e chamado no inicio do jogo, o mapa completo e impresso na tela.
+#Depois disso, a funcao e chamada sempre que o personagem ou os fantasmas se locomoverem (para imprimir apenas os moventes)
+		###################################################################################
+
+PRINT:		li t0,0xFF0			# carrega 0xFF0 (endereço inicial do bitmap) em t0
+		add t0,t0,a3			# adiciona o frame ao FF0 (se o frame for 1 vira FF1, se for 0 fica FF0)
+		slli t0,t0,20			# shift de 20 bits pra esquerda (0xFF0 vira 0xFF000000, 0xFF1 vira 0xFF100000)
+		
+						##Passa-se a procurar a posicao a partir da qual se quer imprimir
+		add t0,t0,a1			# adiciona x ao t0
+		
+		li t1,320			
+		mul t1,t1,a2			
+		add t0,t0,t1			# adiciona ao t0 o valor de Y * 320 (n de bits de cada linha)
+						##t0 está setado para o lugar do mapa em que se quer imprimir a imagem 
+		
+		addi t1,a0,8			# Pula os 8 bits da largura e altura (informacao constante em todas as imagens)
+						##t1 está setado para o primeiro bit da imagem que se pretende imprimir						
+		
+		mv t2,zero			# zera t2 (contador de linhas)
+		mv t3,zero			# zera t3 (contador de colunas)
+		
+		lw t4,0(a0)			# carrega a largura em t4
+		lw t5,4(a0)			# carrega a altura em t5
+		
+PRINT_LINHA:	lw t6,(t1)			# carrega em t6 uma word (4 pixeis) da imagem
+		sw t6,0(t0)			# imprime no bitmap a word (4 pixeis) da imagem
+		
+		addi t0,t0,4			# incrementa endereco do bitmap
+		addi t1,t1,4			# incrementa endereco da imagem
+		
+		addi t3,t3,4			# incrementa contador de coluna
+		blt t3,t4,PRINT_LINHA		# se contador da coluna < largura, continue imprimindo
+
+		addi t0,t0,320			# Pula uma linha
+		sub t0,t0,t4			# Recua a largura da imagem que se quer imprimir
+
+		
+		mv t3,zero			# zera t3 (contador de coluna)
+		addi t2,t2,1			# incrementa contador de linha
+		bgt t5,t2,PRINT_LINHA		# se altura > contador de linha, continue imprimindo			
+
+		ret				# retorna
+
+
+
+		###################################################################################
+#						FUNCAO INPUT
+#FUNCIONAMENTO: Le uma tecla do teclado que indica a direcao que o personagem pretende se movimentar.
+#Se o quadrado for preto, impede o movimento, se for V permite o movimento.
+#Se for VB, permite o movimento, contabiliza a bolinha capturada e exclui ela do mapa.
+		###################################################################################
+
+INPUT:		li t1,0xFF200000		# carrega o endereco de controle do KDMMIO
+		lw t0,0(t1)			# Le bit de Controle Teclado
+		andi t0,t0,0x0001		# mascara o bit menos significativo
+   		beq t0,zero,FIM	   	   	# Se nao ha tecla pressionada entao vai para FIM
+  		lw t3,4(t1)  			# le o valor da tecla		
+			
+		la t0,POS_PERS			#carrega em t0 o endereco da posicao do personagem
+		la t1,POS_ANTIGA_PERS		#carrega em t1 o endereco da antiga posicao do personagem
+		lw t2,0(t0)
+		sw t2,0(t1)			#Atualiza a antiga posicao do personagem com a nova antes de fazer alteracoes 
+		
+		lh t1,0(t0)			# carrega o x atual do personagem
+		lh t2,2(t0)			# carrega o y atual do personagem	
+				
+						##t4 passa a ter o endereco do primeiro bit da imagem map
+		mv t4, s4			#Endereço do inicio do mapa	
+		addi t4, t4, 8			#Pula os dados iniciais de largura e altura do arquivo do map
+	
+		li t5,320			#Bits por linha
+		
+		li t6,'a'			#Carrega o valor digitado pelo usuario e direciona para o movimento correto
+		beq t3,t6,ESQ	
+
+		li t6,'d'
+		beq t3,t6,DIR
+		
+		li t6,'w'
+		beq t3,t6,CIMA
+			
+		li t6,'s'
+		beq t3,t6,BAIXO		
+		
+ESQ:		addi t1,t1,-16			#De acordo com o movimento, incrementa ou decrementa o X e o Y.
+		j CONTINUA
+DIR:		addi t1,t1,16
+		j CONTINUA
+CIMA:		addi t2,t2,-16
+		j CONTINUA
+BAIXO:		addi t2,t2,16
+		j CONTINUA
+
+
+CONTINUA:	mul t5,t5,t2			#Multiplica-se o n de linhas desde o inicio (y) pelo n de bits por linha (320)
+		add t4,t4,t5			#Adiciona-se os bits de y ao t4 e chega-se no inicio da linha que se quer ir.
+		
+		add t4,t4,t1			# Adiciona-se os bits de x ao t4 e chega-se no início da coluna correta.
+						#t4 esta setado para o inicio da primeira linha do quadrado que se quer acessar.
+		lw t6 0(t4)			#t6 recebe o conteudo do primeiro bit do quadrado que se quer acessar
+
+
+		li t5, 0			#t5 representa o preto
+		beq t6,t5,PRETO			#se igual a preto, retornar direto, sem movimentar.
+		
+						
+						##Toca a nota de movimento
+		li a0, 65			# le o valor da nota
+		li a1, 50			# le a duracao da nota
+		li a2,7				# define o instrumento - Help - Syscalls - Midi
+		li a3,127			# define o volume
+		li a7,31			# define a chamada de syscall
+		ecall				# toca a nota
+		
+		
+		li t5, 320
+		li t6, 7
+		mul t5, t5, t6			
+		add t4, t4, t5			#Pulam-se 7 sublinhas e chega-se na sublinha em que pode haver bolinha		
+		
+		addi t4, t4, 4			#Pulam-se 4 bytes e chega-se aos bytes (VB começa com 4 V's) que distinguem V e VB
+		addi t3, t4, 0			#t3 armazena esse valor, que sera utilizado para readequar o valor do quadrado
+						
+		lw t6 0(t4)			#t6 passa a ter o valor do byte do quadrado que eu preciso comparar
+						#Se for V vai constar 0x07-07-07-07; se for VB, 0x11-11-11-11...
+		
+		
+		sh t1,0(t0)			# salva o novo x do personagem no endereço que estava em t0
+		sh t2, 2(t0)			# salva o novo y do personagem no endereço que estava em t0
+		
+		li t4, 0x0b0b0b0b		#t4 representa o roxo das bolinhas
+		beq t6, t4, ROXO
+		ret
+		
+ROXO:		addi s8, s8, -1
+						#t3 estava setado para o início dos 8 bytes que distinguem V de VB
+		li t0 0x07070707
+		sw t0, 0(t3)			#Armazeno o vermelho que estava em t0 no t3
+		sw t0, 4(t3)
+		
+
+
+		li t0, 0			#Verifica se as bolinhas já se esgotaram (fim do jogo)
+		beq s8, t0, ACABOU
+
+		
+PRETO:						
+						##Toca a nota de movimento impossível
+		li a0, 120			# le o valor da nota
+		li a1, 50			# le a duracao da nota
+		li a2,7				# define o instrumento - Help - Syscalls - Midi
+		li a3,127			# define o volume
+		li a7,31			# define a chamada de syscall
+		ecall				# toca a nota
+		ret
+		
+ACABOU:		
+		la a0, YouWin			#Endereço do sprite YouWin
+		li a1,0				# Passa x = 0, já que se pretende imprimir todo o mapa inicial
+		li a2,0				# Também passa o y = 0
+		li a3,0				# Também passa o y = 0
+		call PRINT
+		li a3,1				# Também passa o y = 0
+		call PRINT
+
+FIM:		
+		ret
+
+
+
+
+		###################################################################################
+#						FUNCAO MOVEFAN
+#FUNCIONAMENTO: Atualiza o valor da antiga posicao do personagem com o valor da atual posicao.
+#A partir de um numero aleatorio, decide em qual direcao o fantasma vai se movimentar
+#Altera o valor do X e Y do personagem e salva na posicao atual do personagem.
+		###################################################################################
+
+MOVEFAN: 	li s10, 0
+		
+		mv t0, a4			# carrega em t0 o endereco da posicao do fantasma em questao
+		mv t1, a5			# carrega em t1 o endereco da posicao antiga do fantasma em questao
+		
+		
+		lw t6, 0(t0)			#Atualiza a antiga posicao do fantasma com o valor da nova antes de movimentar
+		sw t6, 0(t1)						
+		
+		lh t2,0(t0)			# carrega a posicao x do fantasma azul em t2
+		lh t3,2(t0)			# carrega a posicao y do fantasma azul em t3
+			
+		mv t4, s4			#Endereço do inicio do mapa	
+		addi t4, t4, 8			#Pula os dados iniciais de largura e altura do arquivo do map
+		
+						##Passa-se a procurar o fantasma no bitmap
+		add t4,t4,t2			# adiciona x ao t4
+		
+		li t5,320			
+		mul t5,t5,t3			
+		add t4,t4,t5			# adiciona ao t4 o valor de Y * 320 (n de bits de cada linha)
+								
+
+		srli t5, s9, 30			###Armazena numero aleatorio, que determina a direcao do movimento do fantasma
+	
+		
+		li t6, 0		
+		beq t5, t6, DESCE
+
+		li t6, 1		
+		beq t5, t6, SOBE
+		
+		li t6, 2		
+		beq t5, t6, DIREITA
+		
+		li t6, 3		
+		beq t5, t6, ESQUERDA
+
+						##Os registradores estao setados da seguinte forma:
+						#t0 -> endereco da posicao do fantasma azul
+						#t1 - > endereco da posicao antiga do fantasma azul
+						#t2 - > x do fantasma 
+						#t3 -> y do fantasma
+						#t4 -> bit 1 do quadrado em que esta o fantasma no bitmap
+						
+
+DESCE:	 	addi t3, t3, 16			#Incrementa o Y do fantasma
+				
+		li t5,320
+		li t6, 16			
+		mul t5,t5,t6			
+		add t4,t4, t5			# adiciona ao t4 o valor de 16 * 320 (bits correspondentes a descer 1 quadrado)
+
+
+		
+		lw t4, 0(t4)			#t4 recebe o valor do byte 1 do quadrado que se quer ir
+	
+		li t5, 0x00000000		#Verifica se o novo quadrado (dado o novo Y) é preto ou não.
+		
+		beq t4, t5, NDESCE			
+		sh t3, 2(t0)			#nova posicao do fantasma e armazenada
+
+NDESCE:		ret
+
+
+SOBE:	 	addi t3, t3, -16			#Decrementa o Y do fantasma
+				
+		li t5,320
+		li t6, -16			
+		mul t5,t5,t6			
+		add t4,t4, t5			
+
+		
+		lw t4, 0(t4)			
+	
+		li t5, 0x00000000		
+		
+		beq t4, t5, NSOBE			
+		sh t3, 2(t0)			
+		
+
+
+NSOBE:		ret
+
+
+ESQUERDA:	 addi t2, t2, -16			#Decrementa o X do fantasma
+				
+		
+		addI t4,t4, -16			
+
+		
+		lw t4, 0(t4)			
+	
+		li t5, 0x00000000		
+		
+		beq t4, t5, NESQUERDA			
+		sh t2, 0(t0)			
+		
+
+NESQUERDA:	ret
+
+
+
+DIREITA:	 addi t2, t2, 16			#Incrementa o X do fantasma
+				
+		
+		addi t4,t4,16			
+
+		
+		lw t4, 0(t4)			
+	
+		li t5, 0x00000000		
+		
+		beq t4, t5, NDIREITA		
+		sh t2, 0(t0)			
+		
+
+NDIREITA:	ret
+
+
+
+		###################################################################################
+#						FUNCAO LIMPARASTROFAN
+#FUNCIONAMENTO: Apenas prepara os parametros para a funcao PRINT DO a0 ao a3.
+#Em relacao ao a0, ele recebe o endereco do tile_sbola se o quadrado for V e _cbola se for VB
+		###################################################################################
+		
+LIMPARASTROFAN:	mv t0, a5			# carrega em t0 o endereco antigo do fantasma emquestao
+
+		lh t1,0(t0)			# carrega a posicao x antiga do fantasma em t1
+		lh t2,2(t0)			# carrega a posicao y antiga do fantasma em t2
+		
+		addi a1,t1,0			#Passa esses valores para a1 e a2, que sao parametros da funcao print
+		addi a2,t2,0
+		
+
+		mv t0, s4			#Endereço do inicio do mapa	
+		addi t0, t0, 8			#Pula os dados iniciais de largura e altura do arquivo do map
+		
+						######Passa-se a procurar o fantasma no bitmap
+		add t0,t0,t1			# adiciona x ao t0
+		
+		li t5,320			
+		mul t5,t5,t2			
+		add t0,t0,t5			# adiciona ao t0 o valor de Y * 320 (n de bits de cada linha)
+						######t0 está setado para o lugar em que o fantasma estava no bitmap		
+	
+		
+		li t5, 320
+		li t6, 7
+		mul t5, t5, t6			
+		add t0, t0, t5			#Pulam-se 7 sublinhas e chega-se na sublinha em que pode haver bolinha		
+		
+		addi t0, t0, 4			#Pulam-se 4 bytes e chega-se aos bytes (VB começa com 4 V's) que distinguem V e VB
+		lw t4, 0(t0)
+
+
+						#t4 passa a ter o valor do byte do quadrado que eu preciso comparar
+						#Se for V vai constar 0x07-07-07-07; se for VB, 0x11-11-11-11...
+
+		li t0, 0x07070707
+		li t1, 0x0b0b0b0b
+		beq t4,t0, RASTROSB
+		beq t4, t1, RASTROCB
+		
+RASTROSB: 	la a0, tile_sbola		# carrega o endereco do sprite 'tile_red' em a0
+		mv a3,s0			# carrega o frame atual (que esta na tela em a3)
+		xori a3,a3,1			# inverte a3 (0 vira 1, 1 vira 0)
+
+
+		
+		ret
+		
+RASTROCB:	la a0, tile_cbola		# carrega o endereco do sprite 'tile_red' em a0
+		mv a3,s0			# carrega o frame atual (que esta na tela em a3)
+		xori a3,a3,1			# inverte a3 (0 vira 1, 1 vira 0)
+
+
+
+		ret
+
+
+
+
+
+
+
+
+
+
+
+
+
+		###################################################################################
+#						FUNCAO LIMPARASTRO
+#FUNCIONAMENTO: Apenas prepara os parametros para a funcao PRINT DO a0 ao a3
+		###################################################################################
+			
+LIMPARASTRO:	la t0,POS_ANTIGA_PERS		# carrega em t0 o endereco antigo do personagem
+		
+		la a0,tile_sbola		# carrega o endereco do sprite 'tile_red' em a0
+		lh a1,0(t0)			# carrega a posicao x antiga do personagem em a1
+		lh a2,2(t0)			# carrega a posicao y antiga do personagem em a2
+
+		mv a3,s0			# carrega o frame atual (que esta na tela em a3)
+		xori a3,a3,1			# inverte a3 (0 vira 1, 1 vira 0)
+
+		ret
+
+
+		
+
+		#######Criador de numero aleatorio provisorio. Alterar funcao e liberar o s9 la no SETUP
+NUMALE:		addi s9, s9, -5
+		li t6, 7
+		mul s9, s9, t6
+		addi s9, s9, 6
+		ret
+
+
+		
+		
+.data
+.include "sprites/tile_sbola.s"
+.include "sprites/tile_cbola.s"
+.include "sprites/map.s"
+.include "sprites/map2.s"
+.include "sprites/map3.s"
+.include "sprites/char.s"
+.include "sprites/fantAzul.s"
+.include "sprites/fantVermelho.s"
+.include "sprites/fantRosa.s"
+.include "sprites/fantAmarelo.s"
+.include "sprites/Inicio.s"
+.include "sprites/YouWin.s"
+.include "sprites/GameOver.s"
+.include "sprites/Vida.s"
+.include "musica.s"
+
+
+

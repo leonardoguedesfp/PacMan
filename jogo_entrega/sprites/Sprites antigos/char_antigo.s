@@ -1,0 +1,10 @@
+char: .word 16, 16
+.byte 
+
+
+.eqv BR 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 
+
+BR BR BR BR BR BR BR BR BR BR BR BR BR BR BR BR 
+
+
+
